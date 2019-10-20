@@ -1,13 +1,15 @@
 import asyncio
-from aiohttp import web
-import aiohttp
-import daiquiri
+import json
 import logging
 import sys
-import json
 import uuid
+from collections import defaultdict, namedtuple
 from functools import lru_cache
-from collections import namedtuple, defaultdict
+
+import aiohttp
+import daiquiri
+from aiohttp import web
+
 import contextvars
 
 daiquiri.setup(
