@@ -41,14 +41,14 @@ class Upstream(namedtuple("Upstream", ["name", "host", "port", "endpoint", "sess
 
 
 class ApiResponse(namedtuple("ApiResponse", ["body", "status", "headers", "name"])):
-    def translate(self):
+    def transform(self):
         try:
             return json.loads(self.body)
         except ValueError as e:
             return {"error": self.body.decode("utf-8")}
 
 
-def default_connection():
+def default_connection() -> aiohttp.ClientSession:
     return aiohttp.ClientSession(
         conn_timeout=Options.conn_timeout, read_timeout=Options.read_timeout
     )
@@ -96,7 +96,15 @@ async def send_request(
             {},
             srv.name,
         )
-    data = await resp.read()
+    try:
+        data = await resp.read()
+    except IOError as e:
+        return ApiResponse(
+            b"Bad gateway #trace=0cf36ac4-b79e-4b74-85f1-fc823822c744",
+            502,
+            {},
+            srv.name,
+        )
     logger.info(
         "done",
         url=srv.url,
@@ -143,12 +151,12 @@ async def gateway(request) -> web.Response:
         reply = results[0]
         return web.Response(body=reply.body, status=reply.status, headers=reply.headers)
 
-    # Reconcile multiple response codes
-
+    # Reconcile multiple response codes, return most optimistic status code
     status = min(results, key=lambda r: r.status).status
     headers = dict(results[0].headers)
-    headers.pop("Content-Length")
-    data = json.dumps({r.name: r.translate() for r in results})
+    headers.pop("Content-Length", None)
+    #  Transform payload
+    data = json.dumps({r.name: r.transform() for r in results})
     return web.Response(body=data, status=status, headers=headers)
 
 

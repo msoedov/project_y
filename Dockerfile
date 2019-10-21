@@ -6,4 +6,4 @@ COPY pip.txt ./
 RUN pip install --no-cache-dir -r pip.txt
 COPY . .
 EXPOSE 8080
-CMD [ "python", "-u", "naive.py" ]
+CMD [ "python", "-u", "project_y.py" ]
